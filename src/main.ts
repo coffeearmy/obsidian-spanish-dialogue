@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { DashOptions, RAYA, codeLines, fixLine, liveDash } from "./dialogue";
@@ -17,7 +17,7 @@ export default class SpanishDialoguePlugin extends Plugin {
 	settings!: DialogueSettings;
 
 	async onload() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<DialogueSettings> | null);
 		this.registerEditorExtension(this.liveConversion());
 		this.addSettingTab(new DialogueSettingTab(this.app, this));
 
@@ -111,48 +111,83 @@ function inCode(state: EditorState, lineNumber: number, before: string): boolean
 	return codeLines(lines)[lineNumber - 1];
 }
 
+type ToggleKey = "liveConvert" | "fixPunctuation" | "listDashAsDialogue";
+
+/** Description with inline code examples: plain strings are text, one-element arrays are code. */
+function desc(parts: (string | [string])[]): DocumentFragment {
+	return createFragment((f) => {
+		for (const p of parts) {
+			if (typeof p === "string") f.appendText(p);
+			else f.createEl("code", { text: p[0] });
+		}
+	});
+}
+
+// Shared by the declarative settings (Obsidian 1.13+) and the display() fallback.
+const TOGGLES: { key: ToggleKey; name: string; desc: () => DocumentFragment }[] = [
+	{
+		key: "liveConvert",
+		name: "Convert while typing",
+		desc: () =>
+			desc([
+				"Turns hyphens into rayas as you type: ", ["-Hola"], " → ", ["—Hola"], ", ", ["--"], " → ", ["—"],
+				", and inside dialogue ", [" -dijo"], " → ", [" —dijo"], " and ", ["Víctor-,"], " → ", ["Víctor—,"], ".",
+			]),
+	},
+	{
+		key: "fixPunctuation",
+		name: "Fix punctuation around incisos",
+		desc: () =>
+			desc([
+				"When running the fix command: drop the period before a speech verb (", ["engañando. —dijo"], " → ",
+				["engañando —dijo"], "), move commas after the closing raya, and drop the closing raya at the end of a paragraph (",
+				["—dijo—."], " → ", ["—dijo."], ").",
+			]),
+	},
+	{
+		key: "listDashAsDialogue",
+		name: "Treat \"- \" at line start as dialogue",
+		desc: () => desc(["Off by default because ", ["- "], " starts a Markdown list. Turn on if you never use hyphen lists."]),
+	},
+];
+
 class DialogueSettingTab extends PluginSettingTab {
-	constructor(app: App, private plugin: SpanishDialoguePlugin) {
+	constructor(
+		app: App,
+		private plugin: SpanishDialoguePlugin,
+	) {
 		super(app, plugin);
 	}
 
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return TOGGLES.map((t) => ({ name: t.name, desc: t.desc(), control: { type: "toggle", key: t.key } }));
+	}
+
+	getControlValue(key: string): unknown {
+		return this.plugin.settings[key as ToggleKey];
+	}
+
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		this.plugin.settings[key as ToggleKey] = value === true;
+		await this.plugin.saveSettings();
+	}
+
+	/** Fallback for Obsidian < 1.13, which never calls getSettingDefinitions(). */
 	display(): void {
 		const { containerEl } = this;
 		const s = this.plugin.settings;
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName("Convert while typing")
-			.setDesc("-Hola → —Hola, -- → —, and inside dialogue: \" -dijo\" → \" —dijo\", \"Víctor-,\" → \"Víctor—,\".")
-			.addToggle((t) =>
-				t.setValue(s.liveConvert).onChange(async (v) => {
-					s.liveConvert = v;
-					await this.plugin.saveSettings();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Fix punctuation around incisos")
-			.setDesc(
-				"When running the fix command: drop the period before a speech verb (\"engañando. —dijo\" → \"engañando —dijo\"), " +
-					"move commas after the closing raya, and drop the closing raya at the end of a paragraph (\"—dijo—.\" → \"—dijo.\")."
-			)
-			.addToggle((t) =>
-				t.setValue(s.fixPunctuation).onChange(async (v) => {
-					s.fixPunctuation = v;
-					await this.plugin.saveSettings();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Treat \"- \" at line start as dialogue")
-			.setDesc("Off by default because \"- \" starts a Markdown list. Turn on if you never use hyphen lists.")
-			.addToggle((t) =>
-				t.setValue(s.listDashAsDialogue).onChange(async (v) => {
-					s.listDashAsDialogue = v;
-					await this.plugin.saveSettings();
-				})
-			);
+		for (const t of TOGGLES) {
+			new Setting(containerEl)
+				.setName(t.name)
+				.setDesc(t.desc())
+				.addToggle((toggle) =>
+					toggle.setValue(s[t.key]).onChange(async (v) => {
+						s[t.key] = v;
+						await this.plugin.saveSettings();
+					}),
+				);
+		}
 	}
 }
-

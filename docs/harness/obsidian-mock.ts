@@ -18,6 +18,29 @@ proto.createEl = function (tag: string, o?: ElOptions) {
 proto.createDiv = function (o?: ElOptions) {
 	return this.createEl("div", o);
 };
+proto.createSpan = function (o?: ElOptions) {
+	return this.createEl("span", o);
+};
+proto.setText = function (t: string) {
+	this.textContent = t;
+};
+proto.addClass = function (...c: string[]) {
+	this.classList.add(...c);
+};
+proto.toggle = function (show: boolean) {
+	this.style.display = show ? "" : "none";
+};
+// Fragments get the same helpers, for createFragment() descriptions.
+const frag = DocumentFragment.prototype as any;
+frag.createEl = proto.createEl;
+frag.appendText = function (t: string) {
+	this.appendChild(document.createTextNode(t));
+};
+(globalThis as any).createFragment = (cb?: (f: DocumentFragment) => void) => {
+	const f = document.createDocumentFragment();
+	cb?.(f);
+	return f;
+};
 proto.empty = function () {
 	this.innerHTML = "";
 };
@@ -36,8 +59,8 @@ function chain<T extends object>(base: T) {
 
 export class Setting {
 	settingEl: HTMLElement;
-	private infoEl: HTMLElement;
-	private controlEl: HTMLElement;
+	infoEl: HTMLElement;
+	controlEl: HTMLElement;
 	constructor(parent: HTMLElement) {
 		this.settingEl = parent.createDiv("setting-item");
 		this.infoEl = this.settingEl.createDiv("setting-item-info");
@@ -47,8 +70,10 @@ export class Setting {
 		this.infoEl.createDiv({ cls: "setting-item-name", text: n });
 		return this;
 	}
-	setDesc(d: string) {
-		this.infoEl.createDiv({ cls: "setting-item-description", text: d });
+	setDesc(d: string | DocumentFragment) {
+		const el = this.infoEl.createDiv({ cls: "setting-item-description" });
+		if (typeof d === "string") el.textContent = d;
+		else el.appendChild(d);
 		return this;
 	}
 	setHeading() {
@@ -120,7 +145,10 @@ export class PluginSettingTab {
 /** Records the settings tab the plugin registers; everything else is a no-op. */
 export class Plugin {
 	settingTab: any;
-	constructor(public app: any, public manifest: any) {}
+	constructor(
+		public app: any,
+		public manifest: any,
+	) {}
 	async loadData() {
 		return {};
 	}

@@ -40,6 +40,7 @@ Command **Insert raya (—)** inserts the dash; give it a hotkey in Settings →
 npm install
 npm run build
 npm test
+npm run lint          # Obsidian's official lint rules (same as the plugin review)
 npm run screenshots   # regenerate docs/images (macOS, needs Obsidian and Chrome)
 ```
 

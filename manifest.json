@@ -1,7 +1,7 @@
 {
 	"id": "spanish-dialogue-dash",
 	"name": "Spanish Dialogue Dash",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.0.0",
 	"description": "Turns hyphens into Spanish dialogue dashes (raya) and fixes spacing and punctuation around narrator incisos.",
 	"author": "Elisa De Gregorio",
