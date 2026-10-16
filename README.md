@@ -8,6 +8,8 @@ Obsidian plugin for Spanish dialogue dashes (raya, `—`), following
 —¡Qué buen día hace! —exclamó sonriente Jorge.
 ```
 
+![A note before and after running "Fix dialogue dashes": hyphens become rayas with correct spacing and punctuation](docs/images/fix.png)
+
 ## While typing
 
 - `-Hola` at line start → `—Hola` (`- ` with a space stays a Markdown list)
@@ -28,12 +30,17 @@ Hyphenated words (`ex-novio`), numbers (`3-4`, `-5`), links, code, frontmatter a
 
 Command **Insert raya (—)** inserts the dash; give it a hotkey in Settings → Hotkeys.
 
+## Settings
+
+![Settings: convert while typing, fix punctuation around incisos, treat "- " as dialogue](docs/images/settings.png)
+
 ## Develop
 
 ```bash
 npm install
 npm run build
 npm test
+npm run screenshots   # regenerate docs/images (macOS, needs Obsidian and Chrome)
 ```
 
 ## Install manually

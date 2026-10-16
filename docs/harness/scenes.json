@@ -1,0 +1,4 @@
+[
+	{ "name": "fix", "theme": "light", "size": [1240, 430] },
+	{ "name": "settings", "theme": "dark", "size": [1100, 290] }
+]
