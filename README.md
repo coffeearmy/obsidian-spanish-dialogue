@@ -57,4 +57,4 @@ If this plugin helps you write, you can buy me a coffee:
 
 ## License
 
-[MIT](LICENSE) © Elisa De Gregorio
+[MIT](LICENSE) 
